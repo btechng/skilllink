@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: freelance-marketplace-server
+    env: node
+    plan: free
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 8080
+      - key: CORS_ORIGIN
+        value: "*"
