@@ -25,7 +25,7 @@ router.post("/", auth, async (req, res) => {
     };
 
     if (replyTo) {
-      messageData.replyTo = replyTo; // Optional: link to original message
+      messageData.replyTo = replyTo; // Optional reference to another message
     }
 
     const message = await Message.create(messageData);
@@ -37,7 +37,7 @@ router.post("/", auth, async (req, res) => {
 
     res.status(201).json(populatedMessage);
   } catch (err) {
-    console.error(err);
+    console.error("Error creating message:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -45,20 +45,34 @@ router.post("/", auth, async (req, res) => {
 /**
  * GET /api/messages
  * Get all messages involving the authenticated user
+ * Optionally filter by another user using ?user=<userId>
  */
 router.get("/", auth, async (req, res) => {
   try {
-    const messages = await Message.find({
+    const { user } = req.query; // optional filter for conversation with a specific user
+
+    let filter = {
       $or: [{ from: req.user._id }, { to: req.user._id }],
-    })
+    };
+
+    if (user) {
+      filter = {
+        $or: [
+          { from: req.user._id, to: user },
+          { from: user, to: req.user._id },
+        ],
+      };
+    }
+
+    const messages = await Message.find(filter)
       .populate("from", "name profileImage")
       .populate("to", "name profileImage")
-      .populate("replyTo") // optional: populate replied message
+      .populate("replyTo") // populate replied-to message if present
       .sort({ createdAt: -1 });
 
     res.json(messages);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching messages:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -76,7 +90,7 @@ router.get("/:id", auth, async (req, res) => {
 
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    // Ensure the user is part of the conversation
+    // Ensure the authenticated user is part of the conversation
     if (
       message.from._id.toString() !== req.user._id.toString() &&
       message.to._id.toString() !== req.user._id.toString()
@@ -86,14 +100,14 @@ router.get("/:id", auth, async (req, res) => {
 
     res.json(message);
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching single message:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 /**
  * DELETE /api/messages/:id
- * Delete a message (sender only)
+ * Delete a message (only sender can delete)
  */
 router.delete("/:id", auth, async (req, res) => {
   try {
@@ -109,7 +123,7 @@ router.delete("/:id", auth, async (req, res) => {
     await message.deleteOne();
     res.json({ ok: true });
   } catch (err) {
-    console.error(err);
+    console.error("Error deleting message:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
