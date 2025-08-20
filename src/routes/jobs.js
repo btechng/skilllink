@@ -7,23 +7,25 @@ import {
   updateJob,
   deleteJob,
   assignFreelancer,
+  getMyJobs,
 } from "../controllers/jobsController.js";
 
 const router = Router();
 
-// Public / auth routes
-router.get("/", auth, listJobs); // List all jobs (authenticated)
-router.get("/:id", auth, getJob); // Get single job by ID
+// ✅ Public / authenticated routes
+router.get("/", auth, listJobs); // List jobs
+router.get("/me", auth, getMyJobs); // Logged-in client’s jobs
+router.get("/:id", auth, getJob); // Get single job
 
-// Client/Admin routes
-router.post("/", auth, requireRole("client", "admin"), createJob); // Create a job
-router.put("/:id", auth, requireRole("client", "admin"), updateJob); // Update job
-router.delete("/:id", auth, requireRole("client", "admin"), deleteJob); // Delete job
+// ✅ Client / Admin routes
+router.post("/", auth, requireRole("client", "admin"), createJob);
+router.put("/:id", auth, requireRole("client", "admin"), updateJob);
+router.delete("/:id", auth, requireRole("client", "admin"), deleteJob);
 router.put(
   "/:id/assign",
   auth,
   requireRole("client", "admin"),
   assignFreelancer
-); // Assign freelancer to job
+);
 
 export default router;
