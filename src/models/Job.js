@@ -10,7 +10,7 @@ const JobSchema = new mongoose.Schema(
     freelancer: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // optional until assigned
     title: { type: String, required: true },
     description: { type: String },
-    budget: { type: Number, required: true },
+    budget: { type: Number },
     category: { type: String },
     status: {
       type: String,
