@@ -10,21 +10,25 @@ router.get("/", async (req, res) => {
 
     let query = { role: "freelancer" };
 
-    // If skill query exists, filter freelancers whose skills array contains the skill
     if (skill) {
-      query.skills = { $in: [skill] };
+      // Split skills by comma, trim spaces, and build regex array
+      const skillsArray = skill
+        .split(",")
+        .map((s) => new RegExp(s.trim(), "i"));
+
+      // Match any freelancer whose skills contain at least one of the requested skills
+      query.skills = { $in: skillsArray };
     }
 
     const freelancers = await User.find(query).select(
       "name title profileImage skills"
-    ); // only needed fields
+    );
     res.json(freelancers);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
-
 // GET single freelancer by ID
 router.get("/:id", async (req, res) => {
   try {
