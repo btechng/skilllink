@@ -10,6 +10,7 @@ import proposalsRoutes from "./routes/proposals.js";
 import txRoutes from "./routes/transactions.js";
 import adminRoutes from "./routes/admin.js";
 import freelancerRoutes from "./routes/freelancers.js";
+import messagesRoutes from "./routes/messages.js";
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use("/api/proposals", proposalsRoutes);
 app.use("/api/transactions", txRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/freelancers", freelancerRoutes);
+app.use("/api/messages", messagesRoutes);
 
 // --- Start Server ---
 const port = process.env.PORT || 8080;
