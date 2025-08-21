@@ -1,5 +1,6 @@
 import { Router } from "express";
 import Message from "../models/Message.js";
+import User from "../models/User.js";
 import { auth } from "../middleware/auth.js";
 
 const router = Router();
@@ -18,27 +19,32 @@ router.post("/", auth, async (req, res) => {
   }
 
   try {
+    // Check recipient exists
+    const recipient = await User.findById(to);
+    if (!recipient) {
+      return res.status(404).json({ message: "Recipient not found" });
+    }
+
+    // Create message
     const messageData = {
       from: req.user._id,
       to,
       content,
     };
-
-    if (replyTo) {
-      messageData.replyTo = replyTo; // Optional reference to another message
-    }
+    if (replyTo) messageData.replyTo = replyTo;
 
     const message = await Message.create(messageData);
 
-    // Populate sender and recipient info
-    const populatedMessage = await message
+    // Populate sender and recipient safely
+    const populatedMessage = await Message.findById(message._id)
       .populate("from", "name profileImage")
-      .populate("to", "name profileImage");
+      .populate("to", "name profileImage")
+      .populate("replyTo");
 
     res.status(201).json(populatedMessage);
   } catch (err) {
-    console.error("Error creating message:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error creating message:", err.message, err.stack);
+    res.status(500).json({ message: "Server error while creating message" });
   }
 });
 
@@ -49,11 +55,9 @@ router.post("/", auth, async (req, res) => {
  */
 router.get("/", auth, async (req, res) => {
   try {
-    const { user } = req.query; // optional filter for conversation with a specific user
+    const { user } = req.query;
 
-    let filter = {
-      $or: [{ from: req.user._id }, { to: req.user._id }],
-    };
+    let filter = { $or: [{ from: req.user._id }, { to: req.user._id }] };
 
     if (user) {
       filter = {
@@ -67,13 +71,13 @@ router.get("/", auth, async (req, res) => {
     const messages = await Message.find(filter)
       .populate("from", "name profileImage")
       .populate("to", "name profileImage")
-      .populate("replyTo") // populate replied-to message if present
+      .populate("replyTo")
       .sort({ createdAt: -1 });
 
     res.json(messages);
   } catch (err) {
-    console.error("Error fetching messages:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching messages:", err.message, err.stack);
+    res.status(500).json({ message: "Server error while fetching messages" });
   }
 });
 
@@ -90,18 +94,19 @@ router.get("/:id", auth, async (req, res) => {
 
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    // Ensure the authenticated user is part of the conversation
-    if (
-      message.from._id.toString() !== req.user._id.toString() &&
-      message.to._id.toString() !== req.user._id.toString()
-    ) {
+    // Ensure authenticated user is part of the conversation
+    const userId = req.user._id.toString();
+    const fromId = message.from?._id?.toString();
+    const toId = message.to?._id?.toString();
+
+    if (!fromId || !toId || (fromId !== userId && toId !== userId)) {
       return res.status(403).json({ message: "Forbidden" });
     }
 
     res.json(message);
   } catch (err) {
-    console.error("Error fetching single message:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching single message:", err.message, err.stack);
+    res.status(500).json({ message: "Server error while fetching message" });
   }
 });
 
@@ -123,8 +128,8 @@ router.delete("/:id", auth, async (req, res) => {
     await message.deleteOne();
     res.json({ ok: true });
   } catch (err) {
-    console.error("Error deleting message:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error deleting message:", err.message, err.stack);
+    res.status(500).json({ message: "Server error while deleting message" });
   }
 });
 
