@@ -20,6 +20,7 @@ const app = express();
 const allowedOrigins = process.env.CORS_ORIGIN?.split(",") || [
   "https://skilllink3.netlify.app",
   "http://localhost:5173",
+  "https://skilllink.taskncart.shop",
 ];
 app.use(
   cors({
